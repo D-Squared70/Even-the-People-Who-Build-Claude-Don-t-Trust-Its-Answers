@@ -1,0 +1,750 @@
+<!DOCTYPE html>
+<html lang="en">
+<head>
+<meta charset="UTF-8">
+<meta name="viewport" content="width=device-width, initial-scale=1.0">
+<title>Trust Is a Number</title>
+<link rel="preconnect" href="https://fonts.googleapis.com">
+<link rel="preconnect" href="https://fonts.gstatic.com" crossorigin>
+<link href="https://fonts.googleapis.com/css2?family=Petrona:ital,wght@0,400;0,500;0,600;1,400;1,500;1,600&family=Familjen+Grotesk:ital,wght@0,400;0,500;0,600;1,400&family=Fragment+Mono:ital@0;1&display=swap" rel="stylesheet">
+<style>
+:root{
+  --bg:#0B0E0C;
+  --ink:#E9E5D9;
+  --dim:rgba(233,229,217,.52);
+  --faint:rgba(233,229,217,.30);
+  --hair:rgba(233,229,217,.12);
+  --card:rgba(233,229,217,.035);
+  --a:#D9A441;
+  --ok:#58B87C;
+  --bad:#D9594A;
+  --serif:'Petrona',serif;
+  --sans:'Familjen Grotesk',sans-serif;
+  --mono:'Fragment Mono',monospace;
+}
+*{margin:0;padding:0;box-sizing:border-box}
+html,body{height:100%;background:var(--bg);overflow:hidden}
+body{font-family:var(--sans);color:var(--ink)}
+#canvas{position:absolute;left:50%;top:50%;height:720px;transform-origin:center;background:
+  radial-gradient(1200px 600px at 50% -10%, rgba(233,229,217,.045), transparent 60%),
+  var(--bg)}
+/* ---------- chrome ---------- */
+#counter{position:absolute;top:34px;right:44px;font-family:var(--mono);font-size:12px;letter-spacing:2px;color:var(--faint);z-index:50}
+#nav{position:absolute;left:36px;top:50%;transform:translateY(-50%);z-index:50;display:flex;flex-direction:column;gap:23px}
+.navitem{display:flex;align-items:center;gap:10px;cursor:pointer}
+.navitem .tick{width:16px;height:7px;border-top:1.5px solid var(--faint);border-bottom:1.5px solid var(--faint);transition:all .35s}
+.navitem .lbl{font-family:var(--mono);font-size:9.5px;letter-spacing:1.8px;color:var(--faint);transition:all .35s;white-space:nowrap}
+.navitem.done .tick{border-color:rgba(233,229,217,.22)}
+.navitem.done .lbl{color:rgba(233,229,217,.26)}
+.navitem.active .tick{width:26px;border-color:var(--a);filter:drop-shadow(0 0 6px var(--a))}
+.navitem.active .lbl{color:var(--ink)}
+/* ---------- slides ---------- */
+.slide{position:absolute;inset:0;padding:52px 64px 40px 178px;opacity:0;visibility:hidden;transform:translateY(10px);transition:opacity .45s ease,transform .45s ease,visibility .45s}
+.slide.cur{opacity:1;visibility:visible;transform:none}
+.kick{font-family:var(--mono);font-size:11px;letter-spacing:3.5px;color:var(--a);margin-bottom:14px;transition:color .4s}
+.kick .sep{color:var(--faint);margin:0 6px}
+h1{font-family:var(--serif);font-weight:500;font-size:46px;line-height:1.12;letter-spacing:.2px}
+h1 em{font-style:italic;color:var(--a);transition:color .4s}
+.sub{font-family:var(--mono);font-size:11.5px;letter-spacing:2.5px;color:var(--dim);margin-top:12px}
+.body{position:absolute;left:178px;right:64px;top:188px;bottom:40px;display:flex;align-items:center;justify-content:center}
+.stage{width:1000px;position:relative}
+/* ---------- reveal engine ---------- */
+.f{opacity:0;transform:translateY(8px);transition:opacity .45s ease,transform .45s ease}
+.f.on{opacity:1;transform:none}
+.spot{transition:opacity .4s ease}
+.spot.lit{opacity:1}
+.spot.done{opacity:.34}
+.spot.idle{opacity:.13}
+/* ---------- shared devices ---------- */
+.dr{position:relative}
+.dr::after{content:'';position:absolute;left:0;right:0;bottom:-7px;border-top:1px solid var(--a);border-bottom:1px solid var(--a);height:3px;transition:border-color .4s}
+.stamp{display:inline-block;font-family:var(--mono);font-size:11.5px;letter-spacing:2.2px;color:var(--a);border:1.5px solid var(--a);border-radius:4px;padding:6px 12px 5px;transform:rotate(-3.5deg);box-shadow:inset 0 0 0 1px rgba(11,14,12,.9),inset 0 0 0 2px var(--a);background:rgba(11,14,12,.55);white-space:nowrap}
+.stamp.bad{color:var(--bad);border-color:var(--bad);box-shadow:inset 0 0 0 1px rgba(11,14,12,.9),inset 0 0 0 2px var(--bad)}
+.card{background:var(--card);border:1px solid var(--hair);border-radius:10px}
+.chip{display:inline-flex;align-items:center;gap:8px;font-family:var(--mono);font-size:12px;letter-spacing:1.6px;color:var(--dim);border:1px dashed rgba(233,229,217,.22);border-radius:6px;padding:8px 13px;white-space:nowrap}
+.mono{font-family:var(--mono)}
+svg .s{stroke:var(--ink);stroke-width:1.6;fill:none;stroke-linecap:round;stroke-linejoin:round}
+svg .sa{stroke:var(--a);stroke-width:1.6;fill:none;stroke-linecap:round;stroke-linejoin:round;transition:stroke .4s}
+svg .sd{stroke:rgba(233,229,217,.35);stroke-width:1.4;fill:none;stroke-linecap:round}
+svg .sh{stroke:var(--hair);stroke-width:1;fill:none}
+/* ---------- prompt block ---------- */
+.prompt{position:relative;background:rgba(233,229,217,.04);border:1px solid rgba(233,229,217,.14);border-radius:12px;padding:38px 44px 36px;font-family:var(--mono);font-size:17.5px;line-height:1.95;color:var(--ink);max-width:920px}
+.ptab{position:absolute;top:-12px;left:26px;font-family:var(--mono);font-size:11.5px;letter-spacing:3px;color:var(--a);background:var(--bg);padding:3px 11px;border:1px solid var(--a);border-radius:4px;transition:all .4s}
+.hl{background:color-mix(in srgb,var(--a) 24%,transparent);color:#fff;border-radius:5px;padding:2px 7px;box-shadow:inset 0 -2px 0 var(--a);white-space:nowrap}
+.ub{background:color-mix(in srgb,var(--a) 11%,transparent);border-bottom:1.5px solid var(--a);border-radius:3px;padding:1px 4px}
+/* ============ S1 three causes ============ */
+.causes{width:880px}
+.cause{display:flex;align-items:center;gap:30px;padding:27px 8px;border-bottom:1px solid var(--hair)}
+.cause:first-child{border-top:1px solid var(--hair)}
+.cause .no{font-family:var(--mono);font-size:13px;color:var(--a);width:42px;letter-spacing:2px}
+.cause .tx{font-family:var(--serif);font-size:31px;font-weight:500;flex:1}
+.cause .ic{width:84px;display:flex;justify-content:flex-end}
+/* ============ S2 plan ============ */
+.plan{display:flex;align-items:stretch;gap:0;width:1000px;border-top:1px solid var(--hair);border-bottom:1px solid var(--hair);padding:36px 0 30px}
+.zone{flex:1;padding:6px 26px 10px}
+.zone+.zone{border-left:1px solid var(--hair)}
+.zone .zl{font-family:var(--mono);font-size:13px;letter-spacing:3px;color:var(--a);margin-bottom:7px}
+.zone .zs{font-family:var(--mono);font-size:11.5px;letter-spacing:1.5px;color:var(--faint);margin-bottom:26px}
+.tac{display:flex;align-items:center;gap:14px;margin-bottom:17px}
+.tac .tn{font-family:var(--mono);font-size:14px;color:var(--a);border:1px solid rgba(233,229,217,.25);border-radius:5px;width:34px;height:34px;display:flex;align-items:center;justify-content:center;flex-shrink:0}
+.tac .tt{font-size:19px;font-weight:600;letter-spacing:.6px}
+/* ============ S3 fuzzy fan ============ */
+.query{display:flex;justify-content:center;margin-bottom:0}
+.qline{font-family:var(--mono);font-size:19px;background:rgba(233,229,217,.045);border:1px solid var(--hair);border-radius:9px;padding:14px 26px}
+.qword{background:color-mix(in srgb,var(--a) 22%,transparent);color:#fff;border-radius:5px;padding:2px 8px;box-shadow:inset 0 -2px 0 var(--a)}
+.fan{position:relative;height:64px;width:1000px}
+.lists{display:flex;gap:18px;width:1000px}
+.lcard{flex:1;background:var(--card);border:1px solid var(--hair);border-radius:9px;padding:17px 17px 15px;transition:opacity .45s,border-color .45s;position:relative}
+.lcard .lt{font-family:var(--mono);font-size:12px;letter-spacing:2px;color:var(--dim);margin-bottom:13px}
+.lrow{display:flex;align-items:center;gap:10px;font-family:var(--mono);font-size:15px;color:var(--ink);padding:7px 0;border-top:1px solid rgba(233,229,217,.07)}
+.lrow .rk{color:var(--faint);font-size:12px}
+.s3[data-step="2"] .lcard,.s3[data-step="3"] .lcard{opacity:.3}
+.s3[data-step="2"] .lcard.pick,.s3[data-step="3"] .lcard.pick{opacity:1;border-color:var(--a)}
+.pickstamp{position:absolute;top:-15px;right:-12px}
+.verdict{font-family:var(--mono);font-size:12.5px;letter-spacing:2.5px;color:var(--dim);text-align:center;margin-top:30px}
+.verdict b{font-weight:400;color:var(--ink)}
+.verdict .q{color:var(--a)}
+/* ============ S4 catch your own ============ */
+.s4stage{width:880px;display:flex;flex-direction:column;align-items:center}
+.ghosts{display:flex;gap:16px;margin-bottom:0;height:46px;align-items:flex-start}
+.ghost{font-family:var(--mono);font-size:14px;letter-spacing:1.6px;color:var(--dim);border:1px dashed rgba(233,229,217,.28);border-radius:6px;padding:9px 16px;transition:opacity .45s}
+.s4[data-step="2"] .ghost{opacity:.22}
+.s4 .fanup{height:46px;width:560px}
+.defchip{margin-top:34px;font-family:var(--mono);font-size:16px;letter-spacing:1.5px;color:#fff;background:color-mix(in srgb,var(--a) 16%,transparent);border:1px solid var(--a);border-radius:7px;padding:14px 24px}
+/* ============ S6 lock loop ============ */
+.lockflow{width:1000px;position:relative;height:330px}
+.nodecard{position:absolute;background:var(--card);border:1px solid var(--hair);border-radius:10px;padding:18px 22px}
+.nodecard .nh{font-family:var(--mono);font-size:12px;letter-spacing:2.2px;color:var(--dim);margin-bottom:13px}
+.defrow{font-family:var(--mono);font-size:15px;color:var(--ink);padding:6px 0}
+.defrow .k{color:var(--a)}
+.savelbl{position:absolute;font-family:var(--mono);font-style:italic;font-size:12px;color:var(--ink);background:rgba(233,229,217,.05);border:1px solid var(--hair);border-radius:6px;padding:8px 13px;max-width:300px;line-height:1.6}
+/* ============ S7 five versions ============ */
+.vstage{width:1000px;position:relative;height:350px}
+.ftab{position:absolute;width:236px;font-family:var(--mono);font-size:14.5px;color:var(--ink);background:var(--card);border:1px solid var(--hair);border-radius:7px;padding:11px 16px;transition:opacity .45s,border-color .45s;white-space:nowrap}
+.ftab .fx{color:var(--faint);font-size:12px}
+.s7[data-step="1"] .ftab:not(.stale):not(.out){opacity:.3}
+.s7[data-step="1"] .ftab.stale{border-color:#F4705A}
+.ainode{position:absolute;width:86px;height:86px;display:flex;align-items:center;justify-content:center;font-family:var(--serif);font-style:italic;font-size:30px;color:var(--ink);border:1px solid rgba(233,229,217,.3);border-radius:12px;transform:rotate(45deg);background:var(--bg)}
+.ainode span{transform:rotate(-45deg)}
+/* ============ S8 one source ============ */
+.srcflow{width:1000px;display:flex;align-items:center;gap:0;justify-content:space-between}
+.drawer{width:268px;background:var(--card);border:1px solid var(--hair);border-radius:10px;padding:16px 18px 14px}
+.drawer .dh{font-family:var(--mono);font-size:11.5px;letter-spacing:2.2px;color:var(--faint);margin-bottom:11px}
+.dtab{font-family:var(--mono);font-size:13.5px;color:var(--faint);padding:7px 11px;border:1px solid rgba(233,229,217,.08);border-radius:5px;margin-bottom:6px;background:rgba(233,229,217,.02)}
+.livefile{font-family:var(--mono);font-size:18px;color:#fff;background:color-mix(in srgb,var(--a) 13%,transparent);border:1px solid var(--a);border-radius:9px;padding:18px 26px}
+/* ============ S10 receipts ledger ============ */
+.ledger{width:940px;background:var(--card);border:1px solid var(--hair);border-radius:12px;padding:10px 36px 0;position:relative}
+.lline{display:flex;align-items:center;justify-content:space-between;gap:30px;padding:21px 2px;border-bottom:1px solid var(--hair)}
+.lline .ans{font-family:var(--serif);font-size:21.5px;font-weight:500}
+.lline .tag{font-family:var(--mono);font-size:13px;letter-spacing:1.2px;color:var(--dim);white-space:nowrap;display:flex;align-items:center;gap:8px}
+.lline .tag .ck{color:var(--ok)}
+.lline.guess{background:color-mix(in srgb,var(--a) 9%,transparent);border-radius:9px;margin:0 -16px;padding-left:16px;padding-right:16px;border-bottom-color:transparent}
+.lline.guess .ans{color:#fff}
+.lline.guess .tag{color:var(--a)}
+.lline.guess .flag{color:var(--a)}
+.lfoot{display:flex;justify-content:space-between;padding:14px 2px 16px;font-family:var(--mono);font-size:11.5px;letter-spacing:2px;color:var(--faint)}
+.lfoot .dr2{border-top:1px solid var(--hair);border-bottom:1px solid var(--hair);height:3px;position:absolute;left:36px;right:36px;margin-top:-14px}
+/* ============ S11 one in ten ============ */
+.tenwrap{display:flex;gap:54px;align-items:center;width:980px}
+.tenrows{flex:1.35}
+.trow{display:flex;align-items:center;gap:14px;font-family:var(--mono);font-size:14px;color:var(--dim);padding:9px 4px;border-bottom:1px solid rgba(233,229,217,.07);transition:all .4s}
+.trow .ti{width:30px;color:var(--faint);font-size:12px}
+.trow .tlb{flex:1}
+.trow .tck{color:var(--ok);font-size:12.5px;letter-spacing:1px}
+.trow.hs{color:var(--ink)}
+.s11[data-step="1"] .trow:not(.hs),.s11[data-step="2"] .trow:not(.hs){opacity:.42}
+.s11[data-step="1"] .trow.hs,.s11[data-step="2"] .trow.hs{background:color-mix(in srgb,var(--a) 7%,transparent);border-bottom-color:var(--a)}
+.crit{flex:1;display:flex;flex-direction:column;gap:18px}
+.critchip{display:flex;align-items:center;gap:16px;border:1px solid var(--hair);background:var(--card);border-radius:9px;padding:17px 21px;font-size:18px;font-weight:600;letter-spacing:.8px}
+.critchip svg{flex-shrink:0}
+/* ============ S12 second opinion ============ */
+.twoways{display:flex;gap:26px;width:1020px}
+.way{flex:1;background:var(--card);border:1px solid var(--hair);border-radius:12px;padding:24px 28px 26px;position:relative}
+.way .wh{font-family:var(--mono);font-size:12px;letter-spacing:2.6px;color:var(--a);margin-bottom:18px}
+.wflow{display:flex;flex-direction:column;align-items:center}
+.topchip{font-family:var(--mono);font-size:13px;letter-spacing:1.8px;color:var(--ink);border:1px solid rgba(233,229,217,.32);border-radius:6px;padding:10px 18px;display:inline-flex;align-items:center;gap:9px}
+.duo{display:flex;gap:12px;width:100%;justify-content:space-between}
+.opt{flex:0 1 auto;border:1px solid var(--hair);border-radius:9px;padding:13px 14px;font-family:var(--mono);font-size:12.5px;letter-spacing:1px;color:var(--dim);display:flex;align-items:center;gap:9px;justify-content:center;white-space:nowrap}
+.opt.yes{border-color:var(--a);color:#fff;background:color-mix(in srgb,var(--a) 9%,transparent)}
+.bub{border:1px solid var(--hair);border-radius:10px;padding:13px 18px;font-family:var(--mono);font-size:12px;color:var(--dim)}
+.bub.fresh{border-color:var(--a);background:color-mix(in srgb,var(--a) 9%,transparent);color:#fff;font-size:16px;line-height:1.7;display:block;width:100%;box-sizing:border-box}
+.bub.fresh .bt{font-family:var(--mono);font-size:11px;letter-spacing:2.5px;color:var(--a);display:block;margin-bottom:8px}
+.logos{display:flex;width:100%;justify-content:space-around;align-items:center}
+.logos img{width:54px;height:54px;border-radius:12px}
+.outc{display:flex;align-items:center;gap:13px;font-size:16px;padding:11px 2px;border-top:1px solid rgba(233,229,217,.08);width:100%}
+.outc:first-of-type{margin-top:16px}
+.outc .ow{font-family:var(--mono);font-size:11.5px;letter-spacing:1.6px;width:100px;flex-shrink:0;display:flex;align-items:center;gap:7px}
+.outc.agree .ow{color:var(--ok)}
+.outc.dis .ow{color:var(--a)}
+/* ============ S13 answer-key test ============ */
+.akwrap{display:flex;align-items:flex-start;gap:0;width:960px;justify-content:space-between}
+.akcol{width:380px}
+.akcol .ahzone{height:74px;display:flex;align-items:flex-end;justify-content:space-between;padding-bottom:13px}
+.akcol .ah{font-family:var(--mono);font-size:13px;letter-spacing:2.4px;color:var(--dim)}
+.akrow{display:flex;align-items:center;gap:14px;padding:8px 2px;border-bottom:1px solid rgba(233,229,217,.07);font-family:var(--mono);font-size:13.5px;color:var(--dim)}
+.akrow .bar{height:7px;border-radius:4px;background:rgba(233,229,217,.24);flex:1}
+.akrow .mk{width:22px;text-align:center;font-size:16px}
+.akrow .mk.y{color:var(--ok)}
+.akrow .mk.n{color:var(--bad)}
+.score2{font-family:var(--serif);font-size:44px;font-weight:500;line-height:1;color:var(--a)}
+.akarrow{align-self:center;margin-top:30px}
+/* ============ S14 verdicts ============ */
+.verds{width:920px}
+.verd{display:flex;align-items:center;gap:30px;padding:26px 6px;border-bottom:1px solid var(--hair)}
+.verd:first-child{border-top:1px solid var(--hair)}
+.verd .vn{font-family:var(--serif);font-size:30px;font-weight:500;width:160px;flex-shrink:0}
+.verd .vbody{flex:1}
+.verd .vt{font-family:var(--serif);font-size:23px;font-weight:500;margin-bottom:6px}
+.fixchips{display:flex;gap:9px;margin-top:11px;flex-wrap:wrap}
+.fixchip{font-family:var(--mono);font-size:12.5px;letter-spacing:1.6px;color:var(--ink);border:1px solid rgba(233,229,217,.25);border-radius:5px;padding:6px 12px}
+.verd .vstamp{width:150px;flex-shrink:0;display:flex;justify-content:flex-end}
+.s14 .spot.idle{opacity:.15}.s14 .spot.done{opacity:.4}
+/* ============ S15 new models ============ */
+.nmwrap{display:flex;align-items:center;gap:58px;width:1000px}
+.keepcard{width:250px;background:var(--card);border:1px solid var(--hair);border-radius:10px;padding:20px 22px 24px}
+.keepcard .kh{font-family:var(--mono);font-size:10px;letter-spacing:2.2px;color:var(--a);margin-bottom:14px}
+.ticks{display:grid;grid-template-columns:repeat(5,1fr);gap:9px;margin-bottom:18px}
+.ticks span{font-family:var(--mono);font-size:12px;color:var(--ok);text-align:center;border:1px solid rgba(233,229,217,.12);border-radius:5px;padding:5px 0}
+.relchart{flex:1;position:relative;height:300px}
+/* ============ S16 the shift ============ */
+.shift{width:900px;text-align:center}
+.oldq{font-family:var(--serif);font-size:40px;font-weight:400;color:var(--dim);position:relative;display:inline-block}
+.oldq .strike{position:absolute;left:-3%;right:-3%;top:54%;height:2px;background:var(--a)}
+.newq{font-family:var(--serif);font-size:54px;font-weight:500;margin-top:46px;line-height:1.2}
+.qk{font-family:var(--mono);font-size:12px;letter-spacing:3px;color:var(--faint);margin-bottom:14px}
+/* ============ S17 recap ============ */
+.recap{width:880px}
+.rrow{display:flex;align-items:center;gap:26px;padding:19.5px 6px;border-bottom:1px solid var(--hair)}
+.rrow:first-child{border-top:1px solid var(--hair)}
+.rrow .rn{font-family:var(--mono);font-size:14px;width:32px;letter-spacing:1px}
+.rrow .rt{font-family:var(--serif);font-size:27px;font-weight:500;flex:1}
+.rrow .rg{width:66px;display:flex;justify-content:flex-end}
+</style>
+</head>
+<body>
+<div id="canvas">
+  <div id="counter">01 / 17</div>
+  <nav id="nav"></nav>
+
+  <!-- ============ 1 · FRAME — three causes ============ -->
+  <section class="slide" data-kick="THE FRAME">
+    <div class="kick">THE FRAME</div>
+    <h1>Wrong answers come from <em>three places</em>.</h1>
+    <div class="body"><div class="causes">
+      <div class="cause spot" data-s="0">
+        <div class="no">01</div>
+        <div class="tx">It guessed what you meant</div>
+        <div class="ic"><svg width="72" height="44" viewBox="0 0 72 44">
+          <path class="s" d="M4 22 H30"/>
+          <path class="sa" d="M30 22 C44 22 46 8 60 8 M30 22 C44 22 46 36 60 36"/>
+          <path class="sa" d="M55 4 l6 4 -6 4 M55 32 l6 4 -6 4"/>
+        </svg></div>
+      </div>
+      <div class="cause spot" data-s="1">
+        <div class="no">02</div>
+        <div class="tx">It pulled old information</div>
+        <div class="ic"><svg width="72" height="48" viewBox="0 0 72 48">
+          <path class="s" d="M14 6 h22 l8 8 v28 h-30 z M36 6 v8 h8"/>
+          <circle class="sa" cx="54" cy="34" r="11"/>
+          <path class="sa" d="M54 27 v7 l5 3"/>
+        </svg></div>
+      </div>
+      <div class="cause spot" data-s="2">
+        <div class="no">03</div>
+        <div class="tx">It looked in the wrong place</div>
+        <div class="ic"><svg width="76" height="44" viewBox="0 0 76 44">
+          <path class="s" d="M4 14 h8 l3 -4 h9 v6 h-20 z M4 16 h20 v18 h-20 z"/>
+          <path class="s" d="M50 14 h8 l3 -4 h9 v6 h-20 z M50 16 h20 v18 h-20 z"/>
+          <path class="sa" d="M27 14 h8 l3 -4 h9 v6 h-20 z M27 16 h20 v18 h-20 z"/>
+          <path class="sa" d="M33 21 l8 8 M41 21 l-8 8"/>
+        </svg></div>
+      </div>
+    </div></div>
+  </section>
+
+  <!-- ============ 2 · FRAME — the plan ============ -->
+  <section class="slide">
+    <div class="kick">THE FRAME</div>
+    <h1>Five tactics, <em>three jobs</em>.</h1>
+    <div class="body"><div class="plan">
+      <div class="zone f" data-s="0">
+        <div class="zl">PREVENT</div>
+        <div class="zs">BEFORE IT RUNS</div>
+        <div class="tac"><div class="tn">1</div><div class="tt">BE SPECIFIC</div></div>
+        <div class="tac"><div class="tn">2</div><div class="tt">USE ONE SOURCE</div></div>
+      </div>
+      <div class="zone f" data-s="1">
+        <div class="zl">CHECK</div>
+        <div class="zs">ON EVERY ANSWER</div>
+        <div class="tac"><div class="tn">3</div><div class="tt">DEMAND RECEIPTS</div></div>
+      </div>
+      <div class="zone f" data-s="2">
+        <div class="zl">PROTECT</div>
+        <div class="zs">WHEN STAKES ARE HIGH</div>
+        <div class="tac"><div class="tn">4</div><div class="tt">GET A SECOND OPINION</div></div>
+        <div class="tac"><div class="tn">5</div><div class="tt">TEST ON KNOWN ANSWERS</div></div>
+      </div>
+    </div></div>
+  </section>
+
+  <!-- ============ 3 · FUZZY — the trap ============ -->
+  <section class="slide s3">
+    <div class="kick">TACTIC 01<span class="sep">·</span>THE FUZZY-WORD TRAP</div>
+    <h1>One word. <em>Four different answers.</em></h1>
+    <div class="body"><div class="stage">
+      <div class="query"><div class="qline">show me our <span class="qword">top</span> customers</div></div>
+      <div class="fan f" data-s="1"><svg width="1000" height="64" viewBox="0 0 1000 64">
+        <path class="sd" d="M500 4 C500 36 127 28 127 60"/>
+        <path class="sd" d="M500 4 C500 36 376 28 376 60"/>
+        <path class="sd" d="M500 4 C500 36 624 28 624 60"/>
+        <path class="sd" d="M500 4 C500 36 873 28 873 60"/>
+      </svg></div>
+      <div class="lists">
+        <div class="lcard f" data-s="1">
+          <div class="lt">BY SPEND</div>
+          <div class="lrow"><span class="rk">1</span>NOVA</div>
+          <div class="lrow"><span class="rk">2</span>ACME</div>
+          <div class="lrow"><span class="rk">3</span>BOLT</div>
+        </div>
+        <div class="lcard pick f" data-s="1">
+          <div class="pickstamp f" data-s="2"><span class="stamp">PICKED · DIDN'T ASK</span></div>
+          <div class="lt">BY RECENCY</div>
+          <div class="lrow"><span class="rk">1</span>BOLT</div>
+          <div class="lrow"><span class="rk">2</span>NOVA</div>
+          <div class="lrow"><span class="rk">3</span>ACME</div>
+        </div>
+        <div class="lcard f" data-s="1">
+          <div class="lt">BY ORDERS</div>
+          <div class="lrow"><span class="rk">1</span>ACME</div>
+          <div class="lrow"><span class="rk">2</span>BOLT</div>
+          <div class="lrow"><span class="rk">3</span>NOVA</div>
+        </div>
+        <div class="lcard f" data-s="1">
+          <div class="lt">BY BRAND</div>
+          <div class="lrow"><span class="rk">1</span>ACME</div>
+          <div class="lrow"><span class="rk">2</span>NOVA</div>
+          <div class="lrow"><span class="rk">3</span>BOLT</div>
+        </div>
+      </div>
+    </div></div>
+  </section>
+
+  <!-- ============ 4 · FUZZY — part one ============ -->
+  <section class="slide s4">
+    <div class="kick">TACTIC 01<span class="sep">·</span>PART ONE</div>
+    <h1>Catch your <em>own</em> vague words.</h1>
+    <div class="body"><div class="s4stage">
+      <div class="ghosts f" data-s="1">
+        <div class="ghost">SPEND?</div>
+        <div class="ghost">RECENT?</div>
+        <div class="ghost">ORDERS?</div>
+      </div>
+      <div class="fanup f" data-s="1"><svg width="560" height="46" viewBox="0 0 560 46">
+        <path class="sd" d="M280 42 C280 18 96 30 96 6"/>
+        <path class="sd" d="M280 42 C280 18 280 30 280 6"/>
+        <path class="sd" d="M280 42 C280 18 464 30 464 6"/>
+      </svg></div>
+      <div class="query"><div class="qline">pull our <span class="qword">top</span> customers for the board deck</div></div>
+      <div class="defchip dr f" data-s="2">TOP = HIGHEST REVENUE · LAST 12 MONTHS</div>
+    </div></div>
+  </section>
+
+  <!-- ============ 5 · FUZZY — part two · prompt ============ -->
+  <section class="slide">
+    <div class="kick">TACTIC 01<span class="sep">·</span>PART TWO</div>
+    <h1>Let it catch <em>the rest</em>.</h1>
+    <div class="body">
+      <div class="prompt"><span class="ptab">PROMPT</span>
+        Before you answer, find any words in my request that <span class="hl">could mean more than one thing</span> and <span class="ub">would change the result</span> — and tell me <span class="hl">how you're reading each one</span>.
+      </div>
+    </div>
+  </section>
+
+  <!-- ============ 6 · FUZZY — part three ============ -->
+  <section class="slide">
+    <div class="kick">TACTIC 01<span class="sep">·</span>PART THREE</div>
+    <h1>Define once. <em>It remembers.</em></h1>
+    <div class="body"><div class="lockflow">
+      <div class="nodecard" style="left:0;top:64px;width:322px">
+        <div class="nh">TODAY'S CHAT — NAILED DOWN</div>
+        <div class="defrow"><span class="k">top</span> = highest revenue · 12 mo</div>
+        <div class="defrow"><span class="k">active</span> = used in last 90 days</div>
+      </div>
+      <svg class="f" data-s="1" style="position:absolute;left:328px;top:96px" width="70" height="40" viewBox="0 0 70 40">
+        <path class="sa" d="M6 20 H56"/><path class="sa" d="M48 14 l10 6 -10 6"/>
+      </svg>
+      <div class="nodecard dr f" data-s="1" style="left:404px;top:44px;width:330px;border-color:rgba(233,229,217,.22)">
+        <div class="nh" style="color:var(--a)">PROJECT INSTRUCTIONS</div>
+        <div class="defrow"><span class="k">top</span> = highest revenue · 12 mo</div>
+        <div class="defrow"><span class="k">active</span> = used in last 90 days</div>
+        <div class="defrow" style="color:var(--faint)">…every definition you lock in</div>
+      </div>
+      <svg class="f" data-s="2" style="position:absolute;left:740px;top:96px" width="70" height="40" viewBox="0 0 70 40">
+        <path class="sa" d="M6 20 H56"/><path class="sa" d="M48 14 l10 6 -10 6"/>
+      </svg>
+      <div class="nodecard f" data-s="2" style="left:816px;top:74px;width:184px;border-color:var(--a);background:color-mix(in srgb,var(--a) 8%,transparent)">
+        <div class="nh" style="color:var(--a)">NEXT WEEK</div>
+        <div style="font-family:var(--serif);font-size:21px">already knows</div>
+      </div>
+    </div></div>
+  </section>
+
+  <!-- ============ 7 · SOURCE — five versions ============ -->
+  <section class="slide s7">
+    <div class="kick">TACTIC 02<span class="sep">·</span>ONE SOURCE OF TRUTH</div>
+    <h1>Five versions. It <em>guesses</em>.</h1>
+    <div class="body"><div class="vstage">
+      <div class="ftab stale" style="left:0;top:0">budget_final<span class="fx">.xlsx</span>
+        <span class="pickstamp f" data-s="1" style="top:-17px;right:-8px"><span class="stamp bad">STALE · EDITED JAN</span></span>
+      </div>
+      <div class="ftab" style="left:54px;top:72px">budget_final_v2<span class="fx">.xlsx</span></div>
+      <div class="ftab" style="left:10px;top:144px">budget_real_final<span class="fx">.xlsx</span></div>
+      <div class="ftab" style="left:64px;top:216px">budget_v2 copy<span class="fx">.xlsx</span></div>
+      <div class="ftab" style="left:18px;top:288px"><span class="fx">/old/</span>budget<span class="fx">.xlsx</span></div>
+      <svg style="position:absolute;left:0;top:0" width="1000" height="350" viewBox="0 0 1000 350">
+        <path class="sh" d="M236 22 C380 22 460 168 604 172"/>
+        <path class="sh" d="M290 94 C420 94 470 170 604 174"/>
+        <path class="sh" d="M246 166 C400 166 480 175 604 176"/>
+        <path class="sh" d="M300 238 C430 238 470 182 604 178"/>
+        <path class="sh" d="M254 310 C410 310 460 190 604 180"/>
+        <path class="sa f" data-s="1" style="stroke:#F4705A;stroke-width:2" d="M236 22 C380 22 460 168 604 172"/>
+      </svg>
+      <div class="ainode" style="left:630px;top:132px"><span>?</span></div>
+      <svg class="f" data-s="1" style="position:absolute;left:740px;top:155px" width="96" height="40" viewBox="0 0 96 40">
+        <path class="s" d="M4 20 H80" style="stroke:rgba(233,229,217,.4)"/><path class="s" d="M74 14 l9 6 -9 6" style="stroke:rgba(233,229,217,.4)"/>
+      </svg>
+      <div class="ftab out f" data-s="1" style="left:846px;top:156px;width:auto;border:1.5px solid #F4705A;color:#FFB7A8;background:rgba(244,112,90,.18);font-size:14px;box-shadow:0 0 18px rgba(244,112,90,.25)">wrong number</div>
+    </div></div>
+  </section>
+
+  <!-- ============ 8 · SOURCE — the fix ============ -->
+  <section class="slide s8">
+    <div class="kick">TACTIC 02<span class="sep">·</span>ONE SOURCE OF TRUTH</div>
+    <h1>One clean source in. <em>Trust out.</em></h1>
+    <div class="body"><div class="srcflow">
+      <div style="display:flex;flex-direction:column;gap:14px;align-items:flex-start">
+        <div class="drawer" style="width:296px">
+          <div class="dh">ARCHIVE /</div>
+          <div class="dtab">budget_final.xlsx</div>
+          <div class="dtab">budget_final_v2.xlsx</div>
+          <div class="dtab">budget_real_final.xlsx</div>
+          <div class="dtab">budget_v2 copy.xlsx</div>
+        </div>
+        <div class="chip">~15 MIN · ONCE PER TASK</div>
+      </div>
+      <div class="livewrap" style="text-align:center">
+        <div class="livefile dr">budget_LIVE.xlsx</div>
+      </div>
+      <svg width="104" height="40" viewBox="0 0 104 40">
+        <path class="sa" d="M6 20 H90"/><path class="sa" d="M82 14 l10 6 -10 6"/>
+      </svg>
+      <div class="ainode" style="position:static;transform:rotate(45deg);flex-shrink:0"><span style="font-style:normal;font-family:var(--sans);font-weight:600;font-size:15px">AI</span></div>
+      <svg width="104" height="40" viewBox="0 0 104 40">
+        <path class="sa" d="M6 20 H90"/><path class="sa" d="M82 14 l10 6 -10 6"/>
+      </svg>
+      <div style="font-family:var(--mono);font-size:14.5px;letter-spacing:1.5px;color:var(--ink);border:1px solid var(--a);border-radius:8px;padding:16px 21px;white-space:nowrap">ONE ANSWER <span style="color:var(--ok)">✓</span></div>
+    </div></div>
+  </section>
+
+  <!-- ============ 9 · RECEIPTS — prompt ============ -->
+  <section class="slide">
+    <div class="kick">TACTIC 03<span class="sep">·</span>SHOW THE SOURCE</div>
+    <h1>Demand <em>receipts</em>.</h1>
+    <div class="body">
+      <div class="prompt"><span class="ptab">PROMPT</span>
+        For each point, tell me <span class="hl">where it came from</span> — <span class="ub">which file, and which part of that file</span>, like the page or the section. If a point is <span class="hl">your own guess</span> instead, say so, and name <span class="ub">one thing I should double-check</span>.
+      </div>
+    </div>
+  </section>
+
+  <!-- ============ 10 · RECEIPTS — the ledger ============ -->
+  <section class="slide s10">
+    <div class="kick">TACTIC 03<span class="sep">·</span>SHOW THE SOURCE</div>
+    <h1>You only check the <em>soft spots</em>.</h1>
+    <div class="body"><div class="ledger">
+      <div class="lline">
+        <div class="ans">Revenue up 12% on the quarter</div>
+        <div class="tag"><span class="ck">✓</span>Q3_review.pdf · p.4</div>
+      </div>
+      <div class="lline">
+        <div class="ans">Churn held at 2.1%</div>
+        <div class="tag"><span class="ck">✓</span>Q3_review.pdf · p.11</div>
+      </div>
+      <div class="lline">
+        <div class="ans">Enterprise renewals drove the gain</div>
+        <div class="tag"><span class="ck">✓</span>Q3_review.pdf · §2</div>
+      </div>
+      <div class="lline guess">
+        <div class="ans">Next quarter: likely +8%</div>
+        <div class="tag"><span class="flag">⚑ MY GUESS</span> · check the pipeline tab</div>
+      </div>
+      <div class="lfoot"><span>SOURCE — Q3_review.pdf</span><span>UPDATED 2 DAYS AGO</span></div>
+    </div></div>
+  </section>
+
+  <!-- ============ 11 · OPINION — one in ten ============ -->
+  <section class="slide s11">
+    <div class="kick">TACTIC 04<span class="sep">·</span>SPOT-CHECK WHAT MATTERS</div>
+    <h1>Deep-check <em>one in ten</em>.</h1>
+    <div class="body"><div class="tenwrap">
+      <div class="tenrows">
+        <div class="trow"><span class="ti">01</span><span class="tlb">sort the inbox</span><span class="tck">✓ QUICK</span></div>
+        <div class="trow"><span class="ti">02</span><span class="tlb">meeting recap</span><span class="tck">✓ QUICK</span></div>
+        <div class="trow"><span class="ti">03</span><span class="tlb">expense log</span><span class="tck">✓ QUICK</span></div>
+        <div class="trow"><span class="ti">04</span><span class="tlb">draft blog outline</span><span class="tck">✓ QUICK</span></div>
+        <div class="trow hs"><span class="ti">05</span><span class="tlb">pricing email to the board</span><span class="f" data-s="1"><span class="stamp">HIGH-STAKES</span></span></div>
+        <div class="trow"><span class="ti">06</span><span class="tlb">call notes</span><span class="tck">✓ QUICK</span></div>
+        <div class="trow"><span class="ti">07</span><span class="tlb">rename the files</span><span class="tck">✓ QUICK</span></div>
+        <div class="trow"><span class="ti">08</span><span class="tlb">summarize the thread</span><span class="tck">✓ QUICK</span></div>
+        <div class="trow"><span class="ti">09</span><span class="tlb">agenda for Tuesday</span><span class="tck">✓ QUICK</span></div>
+        <div class="trow"><span class="ti">10</span><span class="tlb">research a vendor</span><span class="tck">✓ QUICK</span></div>
+      </div>
+      <div class="crit">
+        <div class="critchip f" data-s="2"><svg width="26" height="26" viewBox="0 0 26 26"><circle class="sa" cx="13" cy="13" r="10"/><path class="sa" d="M13 7 v12 M16.5 9.5 c0-1.4-1.6-2.3-3.5-2.3 -1.9 0-3.4 .9-3.4 2.2 0 3.4 7 1.9 7 5.2 0 1.4-1.6 2.3-3.6 2.3 -2 0-3.5-.9-3.5-2.3"/></svg>MONEY</div>
+        <div class="critchip f" data-s="2"><svg width="26" height="26" viewBox="0 0 26 26"><path class="sa" d="M13 4 v17 M9 21 h8 M5 8 h16 M5 8 l-2.6 6 a3 3 0 0 0 5.2 0 z M21 8 l-2.6 6 a3 3 0 0 0 5.2 0 z" transform="scale(.92) translate(1 1)"/></svg>LEGAL</div>
+        <div class="critchip f" data-s="2"><svg width="26" height="26" viewBox="0 0 26 26"><path class="sa" d="M4 19 c3-1 4-6 6-9 1.6-2.4 3.4-2 3 .5 -.4 2.6-2 6-1 6.8 1 .9 2.6-1.6 3.6-1.4 .9 .2 .6 1.8 2 1.8 1 0 1.8-.6 2.4-1.2"/></svg>YOUR NAME</div>
+      </div>
+    </div></div>
+  </section>
+
+  <!-- ============ 12 · OPINION — two ways ============ -->
+  <section class="slide">
+    <div class="kick">TACTIC 04<span class="sep">·</span>SPOT-CHECK WHAT MATTERS</div>
+    <h1>Get a <em>second opinion</em>.</h1>
+    <div class="body"><div class="twoways">
+      <div class="way">
+        <div class="wh">WAY ONE — A FRESH CHAT</div>
+        <div class="wflow">
+          <div class="topchip"><svg width="15" height="17" viewBox="0 0 15 17"><path class="s" d="M2 1.5 h8 l3 3 v11 h-11 z M10 1.5 v3 h3"/><path class="s" d="M4.5 8 h6 M4.5 11 h6"/></svg>THE ANSWER</div>
+          <svg width="440" height="56" viewBox="0 0 440 56">
+            <path class="sd" d="M220 6 C220 28 113 22 113 44"/>
+            <path class="sa" d="M220 6 C220 26 336 16 336 36"/>
+            <path d="M336 47 L330.5 36.5 L341.5 36.5 Z" fill="var(--a)"/>
+            <g><circle cx="160" cy="24" r="9" fill="var(--bg)"/><path class="sd" d="M156 20 l8 8 M164 20 l-8 8" style="stroke:rgba(233,229,217,.55)"/></g>
+          </svg>
+          <div class="duo">
+            <div class="opt"><svg width="15" height="17" viewBox="0 0 15 17"><path class="s" style="stroke:rgba(233,229,217,.45)" d="M7.5 1.5 l5.5 2.4 v4.6 c0 4-2.8 6.4-5.5 7.5 -2.7-1.1-5.5-3.5-5.5-7.5 V3.9 z"/></svg>SAME CHAT — DEFENDS IT</div>
+            <div class="opt yes">NEW CHAT — NO EGO</div>
+          </div>
+          <svg width="440" height="20" viewBox="0 0 440 20"><path class="sa" d="M330 0 V20"/></svg>
+          <div class="bub fresh"><span class="bt">PASTE THE ANSWER, THEN:</span>Challenge this. Tell me what's wrong or weak.</div>
+        </div>
+      </div>
+      <div class="way f" data-s="1">
+        <div class="wh">WAY TWO — A SECOND MODEL</div>
+        <div class="wflow">
+          <div class="topchip">THE SAME QUESTION</div>
+          <svg width="440" height="56" viewBox="0 0 440 56">
+            <path class="sa" d="M220 6 C220 26 110 16 110 36"/>
+            <path d="M110 47 L104.5 36.5 L115.5 36.5 Z" fill="var(--a)"/>
+            <path class="sa" d="M220 6 C220 26 330 16 330 36"/>
+            <path d="M330 47 L324.5 36.5 L335.5 36.5 Z" fill="var(--a)"/>
+          </svg>
+          <div class="logos">
+            <img src="logos/claude.png" alt="Claude">
+            <img src="logos/chatgpt.png" alt="ChatGPT">
+          </div>
+          <div class="outc agree"><span class="ow"><span>✓</span>AGREE</span>trust goes up</div>
+          <div class="outc dis"><span class="ow"><span>✕</span>DISAGREE</span>that exact spot is your call</div>
+        </div>
+      </div>
+    </div></div>
+  </section>
+
+  <!-- ============ 13 · KEY — the test ============ -->
+  <section class="slide">
+    <div class="kick">TACTIC 05<span class="sep">·</span>THE ANSWER-KEY TEST</div>
+    <h1>Test it on answers you <em>already know</em>.</h1>
+    <div class="body"><div class="akwrap">
+      <div class="akcol">
+        <div class="ahzone"><div class="ah">TEN YOU DID RIGHT</div></div>
+        <div class="akrow"><span>01</span><span class="bar"></span><span class="mk y">✓</span></div>
+        <div class="akrow"><span>02</span><span class="bar"></span><span class="mk y">✓</span></div>
+        <div class="akrow"><span>03</span><span class="bar"></span><span class="mk y">✓</span></div>
+        <div class="akrow"><span>04</span><span class="bar"></span><span class="mk y">✓</span></div>
+        <div class="akrow"><span>05</span><span class="bar"></span><span class="mk y">✓</span></div>
+        <div class="akrow"><span>06</span><span class="bar"></span><span class="mk y">✓</span></div>
+        <div class="akrow"><span>07</span><span class="bar"></span><span class="mk y">✓</span></div>
+        <div class="akrow"><span>08</span><span class="bar"></span><span class="mk y">✓</span></div>
+        <div class="akrow"><span>09</span><span class="bar"></span><span class="mk y">✓</span></div>
+        <div class="akrow"><span>10</span><span class="bar"></span><span class="mk y">✓</span></div>
+      </div>
+      <svg class="f akarrow" data-s="1" width="130" height="52" viewBox="0 0 130 52">
+        <path class="sa" d="M10 30 H112" stroke-width="2"/><path class="sa" d="M103 23 l12 7 -12 7" stroke-width="2"/>
+        <text x="61" y="13" text-anchor="middle" font-family="Fragment Mono" font-size="13" letter-spacing="2.5" fill="var(--ink)">AI RUNS</text>
+      </svg>
+      <div class="akcol f" data-s="1">
+        <div class="ahzone"><div class="ah">THE SAME TEN</div><div class="score2 f" data-s="1">8/10</div></div>
+        <div class="akrow"><span>01</span><span class="bar"></span><span class="mk y">✓</span></div>
+        <div class="akrow"><span>02</span><span class="bar"></span><span class="mk y">✓</span></div>
+        <div class="akrow"><span>03</span><span class="bar"></span><span class="mk y">✓</span></div>
+        <div class="akrow"><span>04</span><span class="bar"></span><span class="mk n">✕</span></div>
+        <div class="akrow"><span>05</span><span class="bar"></span><span class="mk y">✓</span></div>
+        <div class="akrow"><span>06</span><span class="bar"></span><span class="mk y">✓</span></div>
+        <div class="akrow"><span>07</span><span class="bar"></span><span class="mk y">✓</span></div>
+        <div class="akrow"><span>08</span><span class="bar"></span><span class="mk y">✓</span></div>
+        <div class="akrow"><span>09</span><span class="bar"></span><span class="mk n">✕</span></div>
+        <div class="akrow"><span>10</span><span class="bar"></span><span class="mk y">✓</span></div>
+      </div>
+    </div></div>
+  </section>
+
+  <!-- ============ 14 · KEY — the verdicts ============ -->
+  <section class="slide s14">
+    <div class="kick">TACTIC 05<span class="sep">·</span>THE ANSWER-KEY TEST</div>
+    <h1>The score <em>decides</em>.</h1>
+    <div class="body"><div class="verds">
+      <div class="verd spot" data-s="0">
+        <div class="vn">10 / 10</div>
+        <div class="vbody"><div class="vt">Let it run</div></div>
+        <div class="vstamp"><span class="stamp">CLEARED</span></div>
+      </div>
+      <div class="verd spot" data-s="1">
+        <div class="vn">7 – 9</div>
+        <div class="vbody"><div class="vt">Fix an input, run the ten again</div>
+          <div class="fixchips">
+            <span class="fixchip">PROMPT</span><span class="fixchip">CONTEXT</span><span class="fixchip">SKILL</span><span class="fixchip">MODEL</span>
+          </div>
+        </div>
+        <div class="vstamp"><svg width="40" height="40" viewBox="0 0 40 40"><path class="sa" d="M31 16 a12 12 0 1 0 2 8 M33 8 v8.6 h-8.6"/></svg></div>
+      </div>
+      <div class="verd spot" data-s="2">
+        <div class="vn">still off</div>
+        <div class="vbody"><div class="vt">Set it aside</div>
+          <div class="fixchips">
+            <span class="chip" style="border-style:solid"><svg width="14" height="14" viewBox="0 0 14 14"><path class="sa" d="M11.5 7 a4.5 4.5 0 1 1 -1.8 -3.6 M9.8 1 l0 2.4 -2.4 0"/></svg>NEW MODEL SHIPS → RUN THE SAME TEN</span>
+          </div>
+        </div>
+        <div class="vstamp"><span class="stamp bad">NOT READY</span></div>
+      </div>
+    </div></div>
+  </section>
+
+  <!-- ============ 15 · SHIFT — the question swap ============ -->
+  <section class="slide s16">
+    <div class="kick">THE SHIFT</div>
+    <h1 style="opacity:0;position:absolute">The shift</h1>
+    <div class="body" style="top:52px"><div class="shift">
+      <div class="qk">STOP ASKING</div>
+      <div class="oldq">Is the AI right?<span class="strike"></span></div>
+      <div class="qk" style="margin-top:52px">START ASKING</div>
+      <div class="newq">How much can I <em style="color:var(--a);font-style:italic">trust</em> this?</div>
+    </div></div>
+  </section>
+
+  <!-- ============ 17 · SHIFT — recap ============ -->
+  <section class="slide">
+    <div class="kick">THE SHIFT<span class="sep">·</span>RECAP</div>
+    <h1>The system.</h1>
+    <div class="body"><div class="recap">
+      <div class="rrow spot" data-s="0" style="--a:#E0653F">
+        <div class="rn mono" style="color:var(--a)">1</div>
+        <div class="rt">Be specific with the words that matter</div>
+        <div class="rg"><svg width="44" height="28" viewBox="0 0 44 28"><path class="s" d="M2 14 H16"/><path class="sa" d="M16 14 C26 14 26 5 36 5 M16 14 C26 14 26 23 36 23 M32 2 l5 3 -5 3 M32 20 l5 3 -5 3"/></svg></div>
+      </div>
+      <div class="rrow spot" data-s="1" style="--a:#3FBE8E">
+        <div class="rn mono" style="color:var(--a)">2</div>
+        <div class="rt">One live source — archive the rest</div>
+        <div class="rg"><svg width="40" height="32" viewBox="0 0 40 32"><path class="sa" d="M6 8 h22 l6 6 v12 h-28 z"/><path class="sa" d="M14 20 h12"/><path class="s" d="M2 4 h18" style="stroke:rgba(233,229,217,.35)"/></svg></div>
+      </div>
+      <div class="rrow spot" data-s="2" style="--a:#5CA8E8">
+        <div class="rn mono" style="color:var(--a)">3</div>
+        <div class="rt">Every point arrives with its receipt</div>
+        <div class="rg"><svg width="34" height="34" viewBox="0 0 34 34"><path class="sa" d="M6 2 h22 v28 l-3.6-3 -3.6 3 -3.6-3 -3.6 3 -3.6-3 -4 3 z"/><path class="sa" d="M11 10 h12 M11 16 h12"/></svg></div>
+      </div>
+      <div class="rrow spot" data-s="3" style="--a:#A78BFA">
+        <div class="rn mono" style="color:var(--a)">4</div>
+        <div class="rt">High stakes get a second opinion</div>
+        <div class="rg"><svg width="42" height="30" viewBox="0 0 42 30"><circle class="sa" cx="13" cy="13" r="8"/><path class="sa" d="M19 19 l7 7"/><circle class="s" cx="31" cy="11" r="6" style="stroke:rgba(233,229,217,.35)"/></svg></div>
+      </div>
+      <div class="rrow spot" data-s="4" style="--a:#3FC2CE">
+        <div class="rn mono" style="color:var(--a)">5</div>
+        <div class="rt">Test it on ten answers you already know</div>
+        <div class="rg"><svg width="50" height="24" viewBox="0 0 50 24"><g class="sa"><rect x="1" y="1" width="7" height="7" rx="1.5"/><rect x="11" y="1" width="7" height="7" rx="1.5"/><rect x="21" y="1" width="7" height="7" rx="1.5"/><rect x="31" y="1" width="7" height="7" rx="1.5"/><rect x="41" y="1" width="7" height="7" rx="1.5"/><rect x="1" y="12" width="7" height="7" rx="1.5"/><rect x="11" y="12" width="7" height="7" rx="1.5"/><rect x="21" y="12" width="7" height="7" rx="1.5"/><rect x="31" y="12" width="7" height="7" rx="1.5"/><rect x="41" y="12" width="7" height="7" rx="1.5"/></g></svg></div>
+      </div>
+    </div></div>
+  </section>
+</div>
+
+<script>
+const CH=[
+  {n:'FRAME',c:'#D9A441',s:0},
+  {n:'FUZZY WORDS',c:'#E0653F',s:2},
+  {n:'ONE SOURCE',c:'#3FBE8E',s:6},
+  {n:'RECEIPTS',c:'#5CA8E8',s:8},
+  {n:'2ND OPINION',c:'#A78BFA',s:10},
+  {n:'ANSWER KEY',c:'#3FC2CE',s:12},
+  {n:'THE SHIFT',c:'#D6CDB8',s:14}
+];
+const slides=[...document.querySelectorAll('.slide')];
+const nav=document.getElementById('nav');
+CH.forEach((c,i)=>{
+  const d=document.createElement('div');
+  d.className='navitem';
+  d.innerHTML='<span class="tick"></span><span class="lbl">'+c.n+'</span>';
+  d.onclick=()=>{cur=c.s;step=0;apply();};
+  nav.appendChild(d);
+});
+const navitems=[...nav.children];
+let cur=0,step=0;
+function maxStep(sl){
+  const els=[...sl.querySelectorAll('[data-s]')];
+  return els.length?Math.max(...els.map(e=>+e.dataset.s)):0;
+}
+function chIdx(){let k=0;CH.forEach((c,i)=>{if(cur>=c.s)k=i;});return k;}
+function apply(){
+  slides.forEach((sl,i)=>sl.classList.toggle('cur',i===cur));
+  const sl=slides[cur];
+  sl.dataset.step=step;
+  sl.querySelectorAll('.f').forEach(e=>e.classList.toggle('on',step>=+e.dataset.s));
+  sl.querySelectorAll('.spot').forEach(e=>{
+    const s=+e.dataset.s;
+    e.classList.remove('lit','done','idle');
+    e.classList.add(s===step?'lit':(s<step?'done':'idle'));
+  });
+  document.getElementById('counter').textContent=String(cur+1).padStart(2,'0')+' / '+slides.length;
+  const ci=chIdx();
+  document.documentElement.style.setProperty('--a',CH[ci].c);
+  navitems.forEach((d,i)=>{
+    d.classList.toggle('active',i===ci);
+    d.classList.toggle('done',i<ci);
+  });
+}
+function next(){
+  if(step<maxStep(slides[cur])){step++;}
+  else if(cur<slides.length-1){cur++;step=0;}
+  apply();
+}
+function prev(){
+  if(step>0){step--;}
+  else if(cur>0){cur--;step=maxStep(slides[cur]);}
+  apply();
+}
+addEventListener('keydown',e=>{
+  if(e.key==='ArrowRight'||e.key===' '||e.key==='PageDown'){e.preventDefault();next();}
+  if(e.key==='ArrowLeft'||e.key==='PageUp'){e.preventDefault();prev();}
+  if(e.key==='Home'){cur=0;step=0;apply();}
+  if(e.key==='End'){cur=slides.length-1;step=0;apply();}
+});
+function fit(){
+  const vw=innerWidth,vh=innerHeight;
+  const W=Math.min(1640,Math.max(1200,720*vw/vh));
+  const sc=Math.min(vw/W,vh/720);
+  const c=document.getElementById('canvas');
+  c.style.width=W+'px';
+  c.style.transform='translate(-50%,-50%) scale('+sc+')';
+}
+addEventListener('resize',fit);
+function fromHash(){
+  const m=location.hash.match(/^#(\d+)(?:\.(\d+))?$/);
+  if(m){
+    cur=Math.min(slides.length-1,Math.max(0,+m[1]-1));
+    step=m[2]?Math.min(maxStep(slides[cur]),+m[2]):0;
+    apply();
+  }
+}
+addEventListener('hashchange',fromHash);
+fit();fromHash();apply();
+</script>
+</body>
+</html>
